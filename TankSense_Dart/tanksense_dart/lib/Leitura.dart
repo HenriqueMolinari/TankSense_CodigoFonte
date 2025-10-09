@@ -1,12 +1,12 @@
 class Leitura {
   // Atributos privados
-  int _id;
-  DateTime _timestamp;
-  double _distanciaCm;
-  double _nivelCm;
-  double _porcentagem;
-  String _statusTanque;
-  bool _displayPiscando;
+  final int _id;
+  final DateTime _timestamp;
+  final double _distanciaCm;
+  final double _nivelCm;
+  final double _porcentagem;
+  final String _statusTanque;
+  final bool _displayPiscando;
 
   // Construtor
   Leitura(

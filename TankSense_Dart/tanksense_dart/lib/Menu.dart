@@ -108,7 +108,7 @@ class Menu {
   }
 
   // Métodos auxiliares privados
-  String _calcularStatusTanque(double porcentagem) {
+  String _calcularStatus(double porcentagem) {
     if (porcentagem > 75) return "Alto";
     if (porcentagem > 30) return "Médio";
     return "Baixo";
@@ -430,13 +430,16 @@ class Menu {
         distancia,
         nivel,
         porcentagem,
-        _calcularStatusTanque(porcentagem),
-        porcentagem < 30,
+        _calcularStatus(porcentagem),
       );
 
       _leituras.add(leitura);
       leitura.exibirDados();
-      if (leitura.displayPiscando) print('⚠️ ALERTA: Nível Baixo!');
+
+      // Verifica se o nível está baixo para alerta
+      if (porcentagem < 30) {
+        print('⚠️ ALERTA: Nível Baixo!');
+      }
     }
     print('✅ Simulação concluída!');
   }
