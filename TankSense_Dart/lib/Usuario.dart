@@ -36,7 +36,7 @@ class Usuario {
 
   // Métodos de negócio
   void atualizarUltimoLogin() {
-    _ultimoLogin = DateTime.now();
+    _ultimoLogin = DateTime.now().toUtc(); // CORREÇÃO: Converter para UTC
   }
 
   bool isAdmin() => _perfil == PerfilUsuario.admin;
@@ -59,7 +59,7 @@ class Usuario {
         '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
   }
 
-  // Método estático para criar usuário
+  // Método estático para criar usuário - CORRIGIDO
   static Usuario criarUsuario({
     required int id,
     required String nome,
@@ -67,7 +67,7 @@ class Usuario {
     required String senha,
     required String perfil,
   }) {
-    final agora = DateTime.now();
+    final agora = DateTime.now().toUtc(); // CORREÇÃO: Converter para UTC
     return Usuario(
       idUsuario: id,
       nome: nome,

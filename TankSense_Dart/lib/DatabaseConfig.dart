@@ -23,9 +23,4 @@ class DatabaseConfig {
    🗃️  Database: $dbName
 ''');
   }
-
-  @override
-  String toString() {
-    return 'DatabaseConfig{host: $host, porta: $porta, usuario: $usuario, dbName: $dbName}';
-  }
 }
