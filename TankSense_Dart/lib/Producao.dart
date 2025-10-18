@@ -1,40 +1,86 @@
+// Producao.dart
 class Producao {
-  // Atributos privados
-  int _id;
-  double _quantidade;
-  DateTime _timestamp;
+  final int id;
+  final int tanqueId;
+  final DateTime dataHora;
+  final double quantidade;
+  final String tipoProducao;
+  final String? observacoes;
 
-  // Construtor
-  Producao(this._id, this._quantidade, this._timestamp);
+  Producao({
+    required this.id,
+    required this.tanqueId,
+    required this.dataHora,
+    required this.quantidade,
+    required this.tipoProducao,
+    this.observacoes,
+  });
 
-  // Getters e Setters
-  int get id => _id;
-  set id(int value) => _id = value;
+  // Métodos getters
+  int get getId => id;
+  int get getTanqueId => tanqueId;
+  DateTime get getDataHora => dataHora;
+  double get getQuantidade => quantidade;
+  String get getTipoProducao => tipoProducao;
+  String? get getObservacoes => observacoes;
 
-  double get quantidade => _quantidade;
-  set quantidade(double value) => _quantidade = value;
-
-  DateTime get timestamp => _timestamp;
-  set timestamp(DateTime value) => _timestamp = value;
-
+  // Método para exibir dados
   void exibirDados() {
-    print('---- Dados da Produção ---');
-    print('ID: $_id');
-    print('Quantidade: $_quantidade');
-    print('Timestamp: ${_formatarData(_timestamp)}');
+    print('🏭 DADOS DA PRODUÇÃO');
+    print('─' * 30);
+    print('ID: $id');
+    print('Tanque ID: $tanqueId');
+    print('Data/Hora: ${_formatarDataHora(dataHora)}');
+    print('Quantidade: ${quantidade}L');
+    print('Tipo: $tipoProducao');
+    if (observacoes != null && observacoes!.isNotEmpty) {
+      print('Observações: $observacoes');
+    }
+    print('─' * 30);
   }
 
-  String _formatarData(DateTime data) {
-    return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} '
-        '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
+  // Método privado para formatar data/hora
+  String _formatarDataHora(DateTime dataHora) {
+    return '${dataHora.day}/${dataHora.month}/${dataHora.year} ${dataHora.hour}:${dataHora.minute.toString().padLeft(2, '0')}';
   }
 
-  String formatarDados() {
-    return 'Produção $_id - Quantidade: $_quantidade - ${_formatarData(_timestamp)}';
+  // Método para calcular produção por hora
+  double calcularProducaoPorHora() {
+    // Simulação - na prática, precisaria de mais dados temporais
+    return quantidade * 0.8; // Fator de conversão exemplo
+  }
+
+  // Método para verificar se é produção válida
+  bool producaoValida() {
+    return quantidade > 0 &&
+        tipoProducao.isNotEmpty &&
+        dataHora.isBefore(DateTime.now());
+  }
+
+  // Método para obter resumo da produção
+  String obterResumo() {
+    return 'Produção $tipoProducao: ${quantidade}L em ${_formatarDataHora(dataHora)}';
+  }
+
+  // Método para atualizar observações
+  void atualizarObservacoes(String novasObservacoes) {
+    print('📝 Observações atualizadas para: $novasObservacoes');
+  }
+
+  // Método toMap para conversão
+  Map<String, dynamic> toMap() {
+    return {
+      'idProducao': id,
+      'tanque_idTanque': tanqueId,
+      'dataHora': dataHora.toIso8601String(),
+      'quantidade': quantidade,
+      'tipoProducao': tipoProducao,
+      'observacoes': observacoes,
+    };
   }
 
   @override
   String toString() {
-    return 'Producao{id: $_id, quantidade: $_quantidade, timestamp: $_timestamp}';
+    return 'Producao{id: $id, tanqueId: $tanqueId, quantidade: ${quantidade}L, tipo: $tipoProducao, data: ${_formatarDataHora(dataHora)}}';
   }
 }

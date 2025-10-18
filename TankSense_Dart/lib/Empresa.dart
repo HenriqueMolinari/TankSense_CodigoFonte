@@ -1,15 +1,12 @@
 class Empresa {
-  // Atributos privados
-  int _id;
+  int _idEmpresa;
   String _nome;
   String _cnpj;
 
-  // Construtor
-  Empresa(this._id, this._nome, this._cnpj);
+  Empresa(this._idEmpresa, this._nome, this._cnpj);
 
-  // Getters e Setters
-  int get id => _id;
-  set id(int value) => _id = value;
+  int get idEmpresa => _idEmpresa;
+  set idEmpresa(int value) => _idEmpresa = value;
 
   String get nome => _nome;
   set nome(String value) => _nome = value;
@@ -19,13 +16,8 @@ class Empresa {
 
   void exibirDados() {
     print('---- Dados da Empresa ---');
-    print('ID: $_id');
+    print('ID: $_idEmpresa');
     print('Nome: $_nome');
     print('CNPJ: $_cnpj');
-  }
-
-  @override
-  String toString() {
-    return 'Empresa{id: $_id, nome: $_nome, cnpj: $_cnpj}';
   }
 }

@@ -1,42 +1,47 @@
+// Dispositivo.dart
 class Dispositivo {
-  // Atributos privados com encapsulamento
-  int _id;
-  String _modelo;
-  String _status;
+  final int id;
+  final String modelo;
+  final String status;
 
-  // Construtor
-  Dispositivo(this._id, this._modelo, this._status);
+  Dispositivo(this.id, this.modelo, this.status);
 
-  // Getters e Setters
-  int get id => _id;
-  set id(int value) => _id = value;
+  // Métodos getters
+  int get getId => id;
+  String get getModelo => modelo;
+  String get getStatus => status;
 
-  String get modelo => _modelo;
-  set modelo(String value) => _modelo = value;
-
-  String get status => _status;
-  set status(String value) => _status = value;
-
-  // Métodos de negócio
-  void ativar() {
-    _status = 'Ativo';
-    print('Dispositivo $_modelo ativado');
-  }
-
-  void desativar() {
-    _status = 'Inativo';
-    print('Dispositivo $_modelo desativado');
-  }
-
+  // Método para exibir dados
   void exibirDados() {
-    print('---- Dados do Dispositivo ---');
-    print('ID: $_id');
-    print('Modelo: $_modelo');
-    print('Status: $_status');
+    print('⚙️  DADOS DO DISPOSITIVO');
+    print('─' * 30);
+    print('ID: $id');
+    print('Modelo: $modelo');
+    print('Status: $status');
+    print('─' * 30);
+  }
+
+  // Método para atualizar status
+  void atualizarStatus(String novoStatus) {
+    print('Status atualizado de $status para $novoStatus');
+  }
+
+  // Método para verificar se está ativo
+  bool estaAtivo() {
+    return status.toLowerCase() == 'ativo';
+  }
+
+  // Método toMap para conversão
+  Map<String, dynamic> toMap() {
+    return {
+      'idDispositivo': id,
+      'modelo': modelo,
+      'status': status,
+    };
   }
 
   @override
   String toString() {
-    return 'Dispositivo{id: $_id, modelo: $_modelo, status: $_status}';
+    return 'Dispositivo{id: $id, modelo: $modelo, status: $status}';
   }
 }

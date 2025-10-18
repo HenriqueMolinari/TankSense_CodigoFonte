@@ -1,6 +1,6 @@
-import 'package:TankSense_CodigoFonte/DatabaseConfig.dart';
-import 'package:TankSense_CodigoFonte/DatabaseConnection.dart';
-import 'package:TankSense_CodigoFonte/Menu.dart';
+import 'package:tanksense/DatabaseConfig.dart';
+import 'package:tanksense/DatabaseConnection.dart';
+import 'package:tanksense/menu.dart';
 
 void main() async {
   final config = DatabaseConfig(

@@ -1,122 +1,100 @@
+// Usuario.dart
 class Usuario {
-  // Atributos privados
-  final int _idUsuario;
-  final String _nome;
-  final String _email;
-  final String _senhaLogin;
-  final String _perfil;
-  final DateTime _dataCriacao;
-  DateTime _ultimoLogin;
+  final int idUsuario;
+  final String nome;
+  final String email;
+  final String senhaLogin;
+  final String perfil;
+  final DateTime dataCriacao;
+  final DateTime ultimoLogin;
+  final int empresaId;
 
-  // Construtor
   Usuario({
-    required int idUsuario,
-    required String nome,
-    required String email,
-    required String senhaLogin,
-    required String perfil,
-    required DateTime dataCriacao,
-    required DateTime ultimoLogin,
-  })  : _idUsuario = idUsuario,
-        _nome = nome,
-        _email = email,
-        _senhaLogin = senhaLogin,
-        _perfil = perfil,
-        _dataCriacao = dataCriacao,
-        _ultimoLogin = ultimoLogin;
+    required this.idUsuario,
+    required this.nome,
+    required this.email,
+    required this.senhaLogin,
+    required this.perfil,
+    required this.dataCriacao,
+    required this.ultimoLogin,
+    required this.empresaId,
+  });
 
-  // Getters
-  int get idUsuario => _idUsuario;
-  String get nome => _nome;
-  String get email => _email;
-  String get senhaLogin => _senhaLogin;
-  String get perfil => _perfil;
-  DateTime get dataCriacao => _dataCriacao;
-  DateTime get ultimoLogin => _ultimoLogin;
+  // Métodos getters
+  int get getIdUsuario => idUsuario;
+  String get getNome => nome;
+  String get getEmail => email;
+  String get getSenhaLogin => senhaLogin;
+  String get getPerfil => perfil;
+  DateTime get getDataCriacao => dataCriacao;
+  DateTime get getUltimoLogin => ultimoLogin;
+  int get getEmpresaId => empresaId;
 
-  // Métodos de negócio
-  void atualizarUltimoLogin() {
-    _ultimoLogin = DateTime.now().toUtc(); // CORREÇÃO: Converter para UTC
-  }
-
-  bool isAdmin() => _perfil == PerfilUsuario.admin;
-  bool isManutencao() => _perfil == PerfilUsuario.manutencao;
-  bool isShopFloor() => _perfil == PerfilUsuario.shopFloor;
-  bool isAnalistaDados() => _perfil == PerfilUsuario.analistaDados;
-
+  // Método para exibir dados
   void exibirDados() {
-    print('---- Dados do Usuário ---');
-    print('ID: $_idUsuario');
-    print('Nome: $_nome');
-    print('Email: $_email');
-    print('Perfil: $_perfil');
-    print('Data de Criação: ${_formatarData(_dataCriacao)}');
-    print('Último Login: ${_formatarData(_ultimoLogin)}');
+    print('👤 DADOS DO USUÁRIO');
+    print('─' * 30);
+    print('ID: $idUsuario');
+    print('Nome: $nome');
+    print('Email: $email');
+    print('Perfil: $perfil');
+    print('Data de Criação: ${_formatarData(dataCriacao)}');
+    print('Último Login: ${_formatarData(ultimoLogin)}');
+    print('Empresa ID: $empresaId');
+    print('─' * 30);
   }
 
+  // Método privado para formatar data
   String _formatarData(DateTime data) {
-    return '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} '
-        '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}';
+    return '${data.day}/${data.month}/${data.year} ${data.hour}:${data.minute}';
   }
 
-  // Método estático para criar usuário - CORRIGIDO
-  static Usuario criarUsuario({
-    required int id,
-    required String nome,
-    required String email,
-    required String senha,
-    required String perfil,
-  }) {
-    final agora = DateTime.now().toUtc(); // CORREÇÃO: Converter para UTC
-    return Usuario(
-      idUsuario: id,
-      nome: nome,
-      email: email,
-      senhaLogin: senha,
-      perfil: perfil,
-      dataCriacao: agora,
-      ultimoLogin: agora,
-    );
+  // Método para atualizar último login
+  void atualizarUltimoLogin() {
+    print('🕒 Último login atualizado para: ${_formatarData(DateTime.now())}');
+  }
+
+  // Método para verificar se é administrador
+  bool isAdministrador() {
+    return perfil.toLowerCase() == 'administrador';
+  }
+
+  // Método para verificar se é operador
+  bool isOperador() {
+    return perfil.toLowerCase() == 'operador';
+  }
+
+  // Método para validar email
+  bool emailValido() {
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    return emailRegex.hasMatch(email);
+  }
+
+  // Método para alterar senha
+  void alterarSenha(String novaSenha) {
+    if (novaSenha.length >= 6) {
+      print('🔒 Senha alterada com sucesso!');
+    } else {
+      print('❌ Senha deve ter pelo menos 6 caracteres!');
+    }
+  }
+
+  // Método toMap para conversão
+  Map<String, dynamic> toMap() {
+    return {
+      'idUsuario': idUsuario,
+      'nome': nome,
+      'email': email,
+      'senhaLogin': senhaLogin,
+      'perfil': perfil,
+      'dataCriacao': dataCriacao.toIso8601String(),
+      'ultimoLogin': ultimoLogin.toIso8601String(),
+      'empresa_idEmpresa': empresaId,
+    };
   }
 
   @override
   String toString() {
-    return 'Usuario{id: $_idUsuario, nome: $_nome, perfil: $_perfil}';
-  }
-}
-
-class PerfilUsuario {
-  // Constantes para os tipos de perfil
-  static const String admin = 'Admin';
-  static const String shopFloor = 'ShopFloor';
-  static const String manutencao = 'Manutenção';
-  static const String analistaDados = 'Analista de Dados';
-
-  static const List<String> todos = [
-    admin,
-    shopFloor,
-    manutencao,
-    analistaDados
-  ];
-
-  // Método estático para validação
-  static bool isValid(String perfil) {
-    return todos.contains(perfil);
-  }
-
-  // Método estático para obter nível de acesso
-  static int getNivelAcesso(String perfil) {
-    switch (perfil) {
-      case admin:
-        return 4;
-      case analistaDados:
-        return 3;
-      case manutencao:
-        return 2;
-      case shopFloor:
-        return 1;
-      default:
-        return 0;
-    }
+    return 'Usuario{id: $idUsuario, nome: $nome, email: $email, perfil: $perfil}';
   }
 }

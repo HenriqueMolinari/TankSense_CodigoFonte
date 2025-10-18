@@ -1,58 +1,95 @@
+// Tanque.dart
 class Tanque {
-  // Atributos privados
-  int _id;
-  double _altura;
-  double _volumeMax;
-  double _volumeAtual;
+  final int id;
+  final double altura;
+  final double volumeMax;
+  double volumeAtual;
 
-  // Construtor
-  Tanque(this._id, this._altura, this._volumeMax, this._volumeAtual);
+  Tanque(this.id, this.altura, this.volumeMax, this.volumeAtual);
 
-  // Getters e Setters
-  int get id => _id;
-  set id(int value) => _id = value;
+  // Métodos getters
+  int get getId => id;
+  double get getAltura => altura;
+  double get getVolumeMax => volumeMax;
+  double get getVolumeAtual => volumeAtual;
 
-  double get altura => _altura;
-  set altura(double value) => _altura = value;
-
-  double get volumeMax => _volumeMax;
-  set volumeMax(double value) => _volumeMax = value;
-
-  double get volumeAtual => _volumeAtual;
-  set volumeAtual(double value) {
-    if (value > _volumeMax) {
-      throw ArgumentError('Volume atual não pode ser maior que volume máximo');
+  // Métodos setters
+  set setVolumeAtual(double volume) {
+    if (volume >= 0 && volume <= volumeMax) {
+      volumeAtual = volume;
+    } else {
+      print('❌ Volume inválido! Deve estar entre 0 e $volumeMax');
     }
-    _volumeAtual = value;
   }
 
-  // Método de negócio
-  double calcularVolumeAtual(double nivel) {
-    double areaBase = _volumeMax / _altura;
-    _volumeAtual = areaBase * nivel;
-
-    if (_volumeAtual > _volumeMax) {
-      _volumeAtual = _volumeMax;
-    }
-
-    return _volumeAtual;
-  }
-
-  double getCapacidadePercentual() {
-    return (_volumeAtual / _volumeMax) * 100;
-  }
-
+  // Método para exibir dados
   void exibirDados() {
-    print('---- Dados do Tanque ---');
-    print('ID: $_id');
-    print('Altura: $_altura m');
-    print('Volume Máximo: $_volumeMax m³');
-    print('Volume Atual: $_volumeAtual m³');
-    print('Capacidade: ${getCapacidadePercentual().toStringAsFixed(1)}%');
+    print('🛢️  DADOS DO TANQUE');
+    print('─' * 30);
+    print('ID: $id');
+    print('Altura: ${altura}m');
+    print('Volume Máximo: ${volumeMax}L');
+    print('Volume Atual: ${volumeAtual}L');
+    print('Capacidade: ${calcularCapacidade().toStringAsFixed(1)}%');
+    print('─' * 30);
+  }
+
+  // Método para calcular capacidade em porcentagem
+  double calcularCapacidade() {
+    return (volumeAtual / volumeMax) * 100;
+  }
+
+  // Método para adicionar volume
+  void adicionarVolume(double volume) {
+    if (volume > 0) {
+      double novoVolume = volumeAtual + volume;
+      if (novoVolume <= volumeMax) {
+        volumeAtual = novoVolume;
+        print('✅ Volume adicionado: ${volume}L');
+      } else {
+        print('❌ Volume excede a capacidade máxima!');
+      }
+    } else {
+      print('❌ Volume deve ser positivo!');
+    }
+  }
+
+  // Método para remover volume
+  void removerVolume(double volume) {
+    if (volume > 0) {
+      if (volume <= volumeAtual) {
+        volumeAtual -= volume;
+        print('✅ Volume removido: ${volume}L');
+      } else {
+        print('❌ Volume insuficiente no tanque!');
+      }
+    } else {
+      print('❌ Volume deve ser positivo!');
+    }
+  }
+
+  // Método para verificar se está vazio
+  bool estaVazio() {
+    return volumeAtual == 0;
+  }
+
+  // Método para verificar se está cheio
+  bool estaCheio() {
+    return volumeAtual >= volumeMax;
+  }
+
+  // Método toMap para conversão
+  Map<String, dynamic> toMap() {
+    return {
+      'idTanque': id,
+      'altura': altura,
+      'volumeMax': volumeMax,
+      'volumeAtual': volumeAtual,
+    };
   }
 
   @override
   String toString() {
-    return 'Tanque{id: $_id, altura: $_altura, volumeMax: $_volumeMax, volumeAtual: $_volumeAtual}';
+    return 'Tanque{id: $id, altura: ${altura}m, volumeMax: ${volumeMax}L, volumeAtual: ${volumeAtual}L}';
   }
 }

@@ -1,13 +1,10 @@
 class Local {
-  // Atributos privados
   int _id;
   String _nome;
   String _referencia;
 
-  // Construtor
   Local(this._id, this._nome, this._referencia);
 
-  // Getters e Setters
   int get id => _id;
   set id(int value) => _id = value;
 
@@ -22,10 +19,5 @@ class Local {
     print('ID: $_id');
     print('Nome: $_nome');
     print('Referência: $_referencia');
-  }
-
-  @override
-  String toString() {
-    return 'Local{id: $_id, nome: $_nome, referencia: $_referencia}';
   }
 }
