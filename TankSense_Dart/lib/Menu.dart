@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:convert';
-import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'Empresa.dart';
 import 'Local.dart';
@@ -90,54 +89,7 @@ class Menu {
     }
   }
 
-  /* Future<void> _enviarLeituraFirebase(double distanciaCm, double nivelCm, double porcentagem, String status) async {
-    try {
-      final novaLeitura = {
-        'timestamp': DateTime.now().toIso8601String(),
-        'distancia_cm': distanciaCm,
-        'nivel_cm': nivelCm,
-        'porcentagem': porcentagem,
-        'status': status,
-      };
-
-      final url = Uri.https(_baseUrl, '/leituras.json', {'auth': _authToken});
-      final response = await http.post(
-        url,
-        body: json.encode(novaLeitura),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        final leituraId = responseData['name']; // ID gerado pelo Firebase
-        
-        print('✅ Leitura enviada para Firebase:');
-        print('   📏 Distância: ${distanciaCm.toStringAsFixed(2)} cm');
-        print('   🌊 Nível: ${nivelCm.toStringAsFixed(2)} cm');
-        print('   📊 Porcentagem: ${porcentagem.toStringAsFixed(1)}%');
-        print('   🚦 Status: $status');
-
-        // Adicionar localmente também
-        final novaLeituraLocal = Leitura(
-          DateTime.now().millisecondsSinceEpoch,
-          DateTime.now(),
-          distanciaCm,
-          nivelCm,
-          porcentagem,
-          status,
-        );
-        _leituras.add(novaLeituraLocal);
-      } else {
-        print('❌ Erro ao enviar para Firebase: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('❌ Erro ao enviar leitura para Firebase: $e');
-    }
-  }
-*/
-
   // ========== CARREGAR DADOS DO BANCO - CORRIGIDO ==========
-  // ========== MÉTODO CORRIGIDO PARA CARREGAR DADOS ==========
   Future<void> _carregarDadosDoBanco() async {
     if (!_conectado) return;
 
@@ -152,8 +104,8 @@ class Menu {
       _tanques.clear();
       _usuarios.clear();
 
-      // 🔥 MÉTODO FODA - CARREGA BASEADO NA ESTRUTURA REAL DA TABELA
-      await _carregarDadosInteligente();
+      // MÉTODO ROBUSTO PARA CARREGAMENTO
+      await _carregarDadosRobusto();
 
       print('\n✅ RESUMO DO CARREGAMENTO:');
       print('🏢 Empresas: ${_empresas.length}');
@@ -167,136 +119,158 @@ class Menu {
     }
   }
 
-// ========== MÉTODO INTELIGENTE QUE DETECTA A ESTRUTURA REAL ==========
-  Future<void> _carregarDadosInteligente() async {
+  // ========== MÉTODO ROBUSTO PARA CARREGAMENTO ==========
+  Future<void> _carregarDadosRobusto() async {
     try {
-      // 1. Primeiro verifica a estrutura real de cada tabela
-      var estruturas = await _verificarEstruturasTabelas();
+      // 🏢 CARREGAR EMPRESAS
 
-      // 2. Carrega os dados baseado na estrutura real
-      for (var tabela in estruturas.entries) {
-        var nomeTabela = tabela.key;
-        var colunas = tabela.value;
-
-        print('\n🔍 Carregando $nomeTabela - Colunas: $colunas');
-
+      try {
         var resultados =
-            await dbConnection.connection!.query('SELECT * FROM $nomeTabela');
-
+            await dbConnection.connection!.query('SELECT * FROM empresa');
         for (var row in resultados) {
           var dados = row.toList();
-          await _processarLinhaInteligente(nomeTabela, colunas, dados);
-        }
-      }
-    } catch (e) {
-      print('❌ Erro no carregamento inteligente: $e');
-    }
-  }
+          print('🔍 Dados brutos da empresa: $dados');
 
-// ========== VERIFICA A ESTRUTURA REAL DAS TABELAS ==========
-  Future<Map<String, List<String>>> _verificarEstruturasTabelas() async {
-    var estruturas = <String, List<String>>{};
-    var tabelas = [
-      'empresa',
-      'local',
-      'dispositivo',
-      'sensor',
-      'tanque',
-      'usuario'
-    ];
-
-    for (var tabela in tabelas) {
-      try {
-        var resultado =
-            await dbConnection.connection!.query('DESCRIBE $tabela');
-        var colunas = <String>[];
-        for (var coluna in resultado) {
-          colunas.add(coluna[0].toString());
-        }
-        estruturas[tabela] = colunas;
-        print('📋 Estrutura real de $tabela: $colunas');
-      } catch (e) {
-        print('⚠️  Tabela $tabela não existe ou erro: $e');
-      }
-    }
-
-    return estruturas;
-  }
-
-// ========== PROCESSADOR INTELIGENTE DE LINHAS ==========
-  Future<void> _processarLinhaInteligente(
-      String tabela, List<String> colunas, List<dynamic> dados) async {
-    try {
-      switch (tabela) {
-        case 'empresa':
-          // EMPRESA: idEmpresa, nome, cnpj
-          if (colunas.length >= 3) {
+          // SÓ CARREGA SE TIVER DADOS VÁLIDOS DE VERDADE
+          if (dados.length >= 3 &&
+              _safeString(dados[1]).isNotEmpty &&
+              _safeString(dados[2]).isNotEmpty) {
+            // Estrutura normal: [id, nome, cnpj] com dados reais
             _empresas.add(Empresa(_safeInt(dados[0]), _safeString(dados[1]),
                 _safeString(dados[2])));
             print('✅ Empresa carregada: ${dados[1]}');
+          } else {
+            print('⚠️  Dados de empresa incompletos ou inválidos: $dados');
           }
-          break;
+        }
+        print('🏢 Empresas carregadas: ${_empresas.length}');
+      } catch (e) {
+        print('❌ Erro ao carregar empresas: $e');
+      }
 
-        case 'local':
-          // LOCAL: idLocal, nome, referencia, empresa_idEmpresa
-          if (colunas.length >= 3) {
-            _locais.add(Local(_safeInt(dados[0]), _safeString(dados[1]),
-                _safeString(dados[2])));
-            print('✅ Local carregado: ${dados[1]}');
+      // 🏠 CARREGAR LOCAIS - CORREÇÃO SIMPLES
+      try {
+        var resultados =
+            await dbConnection.connection!.query('SELECT * FROM local');
+        for (var row in resultados) {
+          var dados = row.toList();
+          print('🔍 Dados brutos do local: $dados');
+
+          if (dados.length >= 3) {
+            String nomeLocal = _safeString(dados[1]);
+            String referenciaLocal = _safeString(dados[2]);
+
+            // ✅ CORREÇÃO: Filtro simples para evitar confusão com empresas
+            if (nomeLocal.length > 3 && referenciaLocal.length > 3) {
+              _locais
+                  .add(Local(_safeInt(dados[0]), nomeLocal, referenciaLocal));
+              print('✅ Local carregado: $nomeLocal');
+            } else {
+              print('⚠️  Ignorado - Dados inválidos para local');
+            }
           }
-          break;
+        }
+        print('🏠 Locais carregados: ${_locais.length}');
+      } catch (e) {
+        print('❌ Erro ao carregar locais: $e');
+      }
 
-        case 'dispositivo':
-          // DISPOSITIVO: idDispositivo, modelo, status
-          if (colunas.length >= 3) {
+      // ⚙️ CARREGAR DISPOSITIVOS
+      try {
+        var resultados =
+            await dbConnection.connection!.query('SELECT * FROM dispositivo');
+        for (var row in resultados) {
+          var dados = row.toList();
+          print('🔍 Dados brutos do dispositivo: $dados');
+
+          if (dados.length >= 3) {
             _dispositivos.add(Dispositivo(_safeInt(dados[0]),
                 _safeString(dados[1]), _safeString(dados[2])));
             print('✅ Dispositivo carregado: ${dados[1]}');
           }
-          break;
+        }
+        print('⚙️  Dispositivos carregados: ${_dispositivos.length}');
+      } catch (e) {
+        print('❌ Erro ao carregar dispositivos: $e');
+      }
 
-        case 'sensor':
-          // SENSOR: idSensor, tipo, unidadeMedida
-          if (colunas.length >= 3) {
-            _sensores.add(SensorUltrassonico(_safeInt(dados[0]),
-                _safeString(dados[1]), _safeString(dados[2])));
+      // 📡 CARREGAR SENSORES
+      try {
+        var resultados =
+            await dbConnection.connection!.query('SELECT * FROM sensor');
+        for (var row in resultados) {
+          var dados = row.toList();
+          print('🔍 Dados brutos do sensor: $dados');
+
+          if (dados.length >= 3) {
+            int dispositivoId = dados.length >= 4 ? _safeInt(dados[3]) : 0;
+            _sensores.add(SensorUltrassonico(
+              _safeInt(dados[0]),
+              _safeString(dados[1]),
+              _safeString(dados[2]),
+              dispositivoId: dispositivoId,
+            ));
             print('✅ Sensor carregado: ${dados[1]}');
           }
-          break;
+        }
+        print('📡 Sensores carregados: ${_sensores.length}');
+      } catch (e) {
+        print('❌ Erro ao carregar sensores: $e');
+      }
 
-        case 'tanque':
-          // TANQUE: idTanque, altura, volumeMax, volumeAtual
-          if (colunas.length >= 4) {
+      // 🛢️ CARREGAR TANQUES
+      try {
+        var resultados =
+            await dbConnection.connection!.query('SELECT * FROM tanque');
+        for (var row in resultados) {
+          var dados = row.toList();
+          print('🔍 Dados brutos do tanque: $dados');
+
+          if (dados.length >= 4) {
             _tanques.add(Tanque(_safeInt(dados[0]), _safeDouble(dados[1]),
                 _safeDouble(dados[2]), _safeDouble(dados[3])));
             print('✅ Tanque carregado: ID ${dados[0]}');
           }
-          break;
+        }
+        print('🛢️  Tanques carregados: ${_tanques.length}');
+      } catch (e) {
+        print('❌ Erro ao carregar tanques: $e');
+      }
 
-        case 'usuario':
-          // USUARIO: idUsuario, nome, email, senhaLogin, perfil, dataCriacao, ultimoLogin, empresa_idEmpresa
-          if (colunas.length >= 3) {
+      // 👤 CARREGAR USUÁRIOS
+      try {
+        var resultados =
+            await dbConnection.connection!.query('SELECT * FROM usuario');
+        for (var row in resultados) {
+          var dados = row.toList();
+          print('🔍 Dados brutos do usuário: $dados');
+
+          if (dados.length >= 3) {
             _usuarios.add(Usuario(
               idUsuario: _safeInt(dados[0]),
               nome: _safeString(dados[1]),
-              email: colunas.length > 2 ? _safeString(dados[2]) : '',
-              senhaLogin: colunas.length > 3 ? _safeString(dados[3]) : '',
-              perfil: colunas.length > 4 ? _safeString(dados[4]) : 'Usuario',
+              email: dados.length > 2
+                  ? _safeString(dados[2])
+                  : 'email@exemplo.com',
+              senhaLogin: dados.length > 3 ? _safeString(dados[3]) : 'senha',
+              perfil: dados.length > 4 ? _safeString(dados[4]) : 'Usuario',
               dataCriacao: DateTime.now(),
               ultimoLogin: DateTime.now(),
-              empresaId: colunas.length > 7 ? _safeInt(dados[7]) : 1,
+              empresaId: dados.length > 7 ? _safeInt(dados[7]) : 1,
             ));
             print('✅ Usuário carregado: ${dados[1]}');
           }
-          break;
+        }
+        print('👤 Usuários carregados: ${_usuarios.length}');
+      } catch (e) {
+        print('❌ Erro ao carregar usuários: $e');
       }
     } catch (e) {
-      print('❌ Erro ao processar linha da tabela $tabela: $e');
-      print('   Dados: $dados');
+      print('❌ Erro geral no carregamento: $e');
     }
   }
 
-// ========== MÉTODOS AUXILIARES SEGUROS ==========
+  // ========== MÉTODOS AUXILIARES SEGUROS ==========
   int _safeInt(dynamic value) {
     if (value == null) return 0;
     if (value is int) return value;
@@ -478,6 +452,36 @@ class Menu {
   Future<void> _cadastrarSensor() async {
     print('\n📡 CADASTRAR SENSOR');
 
+    // Verificar se existem dispositivos cadastrados
+    if (_dispositivos.isEmpty) {
+      print('❌ É necessário cadastrar um dispositivo primeiro!');
+      return;
+    }
+
+    // Mostrar dispositivos disponíveis
+    print('\n📋 Dispositivos disponíveis:');
+    for (int i = 0; i < _dispositivos.length; i++) {
+      print(
+          '${i + 1} - ${_dispositivos[i].modelo} (Status: ${_dispositivos[i].status}) [ID: ${_dispositivos[i].id}]');
+    }
+
+    // Selecionar dispositivo
+    int? dispositivoIndex;
+    do {
+      stdout.write('Selecione o dispositivo (1-${_dispositivos.length}): ');
+      final input = stdin.readLineSync()?.trim();
+      dispositivoIndex = int.tryParse(input ?? '');
+
+      if (dispositivoIndex == null ||
+          dispositivoIndex < 1 ||
+          dispositivoIndex > _dispositivos.length) {
+        print('❌ Selecione um dispositivo válido!');
+      }
+    } while (dispositivoIndex == null);
+
+    final dispositivoSelecionado = _dispositivos[dispositivoIndex - 1];
+
+    // Dados do sensor
     stdout.write('Tipo: ');
     final tipo = stdin.readLineSync()?.trim() ?? '';
 
@@ -489,19 +493,29 @@ class Menu {
       return;
     }
 
+    // Criar sensor COM DISPOSITIVO_ID
     int novoId = _sensores.isEmpty
         ? 1
         : (_sensores.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
-    final sensor = SensorUltrassonico(novoId, tipo, unidadeMedida);
+
+    final sensor = SensorUltrassonico(
+      novoId,
+      tipo,
+      unidadeMedida,
+      dispositivoId: dispositivoSelecionado.id,
+    );
     _sensores.add(sensor);
 
+    // Salvar no banco COM O DISPOSITIVO_ID
     if (_conectado) {
       try {
         await dbConnection.connection!.query(
-          'INSERT INTO sensor (tipo, unidadeMedida) VALUES (?, ?)',
-          [sensor.tipo, sensor.unidadeMedida],
+          'INSERT INTO sensor (tipo, unidadeMedida, dispositivo_idDispositivo) VALUES (?, ?, ?)',
+          [sensor.tipo, sensor.unidadeMedida, dispositivoSelecionado.id],
         );
         print('💾 Sensor salvo no banco de dados!');
+        print(
+            '⚙️  Vinculado ao dispositivo: ${dispositivoSelecionado.modelo} (ID: ${dispositivoSelecionado.id})');
       } catch (e) {
         print('❌ Erro ao salvar sensor no banco: $e');
       }
@@ -514,6 +528,62 @@ class Menu {
   Future<void> _cadastrarTanque() async {
     print('\n🛢️  CADASTRAR TANQUE');
 
+    // Verificar se existem locais cadastrados
+    if (_locais.isEmpty) {
+      print('❌ É necessário cadastrar um local primeiro!');
+      return;
+    }
+
+    // Verificar se existem dispositivos cadastrados
+    if (_dispositivos.isEmpty) {
+      print('❌ É necessário cadastrar um dispositivo primeiro!');
+      return;
+    }
+
+    // Mostrar locais disponíveis
+    print('\n📋 Locais disponíveis:');
+    for (int i = 0; i < _locais.length; i++) {
+      print('${i + 1} - ${_locais[i].nome} (Ref: ${_locais[i].referencia})');
+    }
+
+    // Selecionar local
+    int? localIndex;
+    do {
+      stdout.write('Selecione o local (1-${_locais.length}): ');
+      final input = stdin.readLineSync()?.trim();
+      localIndex = int.tryParse(input ?? '');
+
+      if (localIndex == null || localIndex < 1 || localIndex > _locais.length) {
+        print('❌ Selecione um local válido!');
+      }
+    } while (localIndex == null);
+
+    final localSelecionado = _locais[localIndex - 1];
+
+    // Mostrar dispositivos disponíveis
+    print('\n📋 Dispositivos disponíveis:');
+    for (int i = 0; i < _dispositivos.length; i++) {
+      print(
+          '${i + 1} - ${_dispositivos[i].modelo} (Status: ${_dispositivos[i].status})');
+    }
+
+    // Selecionar dispositivo
+    int? dispositivoIndex;
+    do {
+      stdout.write('Selecione o dispositivo (1-${_dispositivos.length}): ');
+      final input = stdin.readLineSync()?.trim();
+      dispositivoIndex = int.tryParse(input ?? '');
+
+      if (dispositivoIndex == null ||
+          dispositivoIndex < 1 ||
+          dispositivoIndex > _dispositivos.length) {
+        print('❌ Selecione um dispositivo válido!');
+      }
+    } while (dispositivoIndex == null);
+
+    final dispositivoSelecionado = _dispositivos[dispositivoIndex - 1];
+
+    // Dados do tanque
     double? altura;
     do {
       stdout.write('Altura (metros): ');
@@ -536,19 +606,30 @@ class Menu {
       }
     } while (volumeMax == null || volumeMax <= 0);
 
+    // Criar tanque
     int novoId = _tanques.isEmpty
         ? 1
         : (_tanques.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
+
     final tanque = Tanque(novoId, altura, volumeMax, 0.0);
     _tanques.add(tanque);
 
+    // Salvar no banco COM OS IDs DE LOCAL E DISPOSITIVO
     if (_conectado) {
       try {
         await dbConnection.connection!.query(
-          'INSERT INTO tanque (altura, volumeMax, volumeAtual) VALUES (?, ?, ?)',
-          [tanque.altura, tanque.volumeMax, tanque.volumeAtual],
+          'INSERT INTO tanque (altura, volumeMax, volumeAtual, local_idLocal, dispositivo_idDispositivo) VALUES (?, ?, ?, ?, ?)',
+          [
+            tanque.altura,
+            tanque.volumeMax,
+            tanque.volumeAtual,
+            localSelecionado.id, // local_idLocal
+            dispositivoSelecionado.id // dispositivo_idDispositivo
+          ],
         );
         print('💾 Tanque salvo no banco de dados!');
+        print('🏠 Vinculado ao local: ${localSelecionado.nome}');
+        print('⚙️  Vinculado ao dispositivo: ${dispositivoSelecionado.modelo}');
       } catch (e) {
         print('❌ Erro ao salvar tanque no banco: $e');
       }
@@ -839,53 +920,227 @@ class Menu {
     }
   }
 
-  Future<void> _calcularProducao() async {
-    print('\n🏭 CALCULAR PRODUÇÃO');
+  Future<void> _enviarLeiturasParaMySQL() async {
+    print('\n📤 ENVIAR LEITURAS DO FIREBASE PARA MYSQL');
     print('═' * 50);
 
-    if (_tanques.isEmpty) {
-      print('❌ Nenhum tanque cadastrado para calcular produção');
+    if (_leituras.isEmpty) {
+      print('❌ Nenhuma leitura disponível para enviar');
       return;
     }
 
-    final random = Random();
-    final tanque = _tanques[random.nextInt(_tanques.length)];
-    final quantidade = random.nextDouble() * 1000;
+    if (!_conectado) {
+      print('❌ Sem conexão com o banco MySQL');
+      return;
+    }
 
-    int novoId = _producoes.isEmpty
-        ? 1
-        : (_producoes.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
-    final producao = Producao(
-      id: novoId,
-      tanqueId: tanque.id,
-      dataHora: DateTime.now(),
-      quantidade: quantidade,
-      tipoProducao: 'Automática',
-      observacoes: 'Produção calculada automaticamente',
-    );
+    if (_sensores.isEmpty) {
+      print('❌ Nenhum sensor cadastrado no MySQL');
+      return;
+    }
 
-    _producoes.add(producao);
+    // Usar o primeiro sensor disponível
+    final sensorId = _sensores.first.id;
+    int leiturasEnviadas = 0;
+    int leiturasComErro = 0;
 
-    if (_conectado) {
+    print('📊 Total de leituras no Firebase: ${_leituras.length}');
+    print('📡 Usando sensor ID: $sensorId');
+    print('🚀 Enviando todas as leituras...');
+
+    for (final leitura in _leituras) {
       try {
+        // ✅ CORREÇÃO: usar timestamp minúsculo (como está na classe Leitura)
+        String dataFormatada = _formatarDataParaMySQL(leitura.timestamp);
+
+        // APENAS ENVIAR - SEM VERIFICAR DUPLICATAS
         await dbConnection.connection!.query(
-          'INSERT INTO producao (tanque_idTanque, dataHora, quantidade, tipoProducao, observacoes) VALUES (?, ?, ?, ?, ?)',
+          '''INSERT INTO leitura 
+           (timestamp, distanciaCm, nivelCm, porcentagem, statusTanque, sensor_idSensor) 
+           VALUES (?, ?, ?, ?, ?, ?)''',
           [
-            producao.tanqueId,
-            producao.dataHora.toIso8601String(),
-            producao.quantidade,
-            producao.tipoProducao,
-            producao.observacoes,
+            dataFormatada,
+            leitura.distanciaCm,
+            leitura.nivelCm,
+            leitura.porcentagem,
+            leitura.status,
+            sensorId,
           ],
         );
-        print('💾 Produção salva no banco de dados!');
+
+        leiturasEnviadas++;
+        print('✅ $dataFormatada - ${leitura.porcentagem.toStringAsFixed(1)}%');
       } catch (e) {
-        print('❌ Erro ao salvar produção no banco: $e');
+        leiturasComErro++;
+        // ✅ CORREÇÃO: usar timestamp minúsculo
+        print('❌ ${leitura.timestamp}: $e');
       }
     }
 
-    print('✅ Produção calculada e salva com sucesso!');
-    producao.exibirDados();
+    print('\n📊 RESUMO DO ENVIO:');
+    print('✅ Leituras enviadas com sucesso: $leiturasEnviadas');
+    print('❌ Leituras com erro: $leiturasComErro');
+    print('📋 Total processado: ${_leituras.length}');
+
+    if (leiturasEnviadas > 0) {
+      print('🎉 Leituras enviadas para MySQL!');
+    }
+  }
+
+// MÉTODO AUXILIAR PARA FORMATAR DATA PARA MYSQL
+  String _formatarDataParaMySQL(DateTime dateTime) {
+    // Formato: YYYY-MM-DD HH:MM:SS (sem T e Z)
+    String year = dateTime.year.toString();
+    String month = dateTime.month.toString().padLeft(2, '0');
+    String day = dateTime.day.toString().padLeft(2, '0');
+    String hour = dateTime.hour.toString().padLeft(2, '0');
+    String minute = dateTime.minute.toString().padLeft(2, '0');
+    String second = dateTime.second.toString().padLeft(2, '0');
+
+    return '$year-$month-$day $hour:$minute:$second';
+  }
+
+  Future<void> _calcularProducao() async {
+    print('\n🏭 CALCULAR PRODUÇÃO POR LEITURA');
+    print('═' * 50);
+
+    if (_leituras.isEmpty) {
+      print('❌ Nenhuma leitura disponível para calcular produção');
+      return;
+    }
+
+    // Encontrar um sensor válido
+    int sensorId = _sensores.isNotEmpty ? _sensores.first.id : 1;
+
+    // 🔥 CALCULAR PRODUÇÃO PARA CADA LEITURA
+    int producoesCriadas = 0;
+
+    for (int i = 1; i < _leituras.length; i++) {
+      final leituraAtual = _leituras[i];
+      final leituraAnterior = _leituras[i - 1];
+
+      // Calcular variação percentual
+      double variacaoPercentual =
+          leituraAnterior.porcentagem - leituraAtual.porcentagem;
+
+      // Só cria produção se o tanque baixou (variação positiva)
+      if (variacaoPercentual > 0) {
+        double metrosFio = variacaoPercentual; // 1% = 1 metro
+
+        int novoId = _producoes.isEmpty
+            ? 1
+            : (_producoes.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
+
+        final producao = Producao(
+          id: novoId,
+          tanqueId: 1,
+          dataHora: leituraAtual.timestamp, // ✅ Usar timestamp da leitura
+          quantidade: metrosFio,
+          tipoProducao: 'Automática',
+          observacoes:
+              'Leitura ${i}: ${variacaoPercentual.toStringAsFixed(2)}% = ${metrosFio.toStringAsFixed(2)}m de fio',
+        );
+
+        _producoes.add(producao);
+        producoesCriadas++;
+
+        // Salvar no banco COM FORMATO CORRETO
+        if (_conectado) {
+          try {
+            // ✅ CORREÇÃO: Usar timestamp minúsculo e data formatada
+            String dataFormatada = _formatarDataParaMySQL(producao.dataHora);
+
+            await dbConnection.connection!.query(
+              'INSERT INTO producao (quantidade, timestamp, sensor_idSensor) VALUES (?, ?, ?)',
+              [
+                producao.quantidade,
+                dataFormatada, // ✅ Data formatada para MySQL
+                sensorId
+              ],
+            );
+            print(
+                '✅ Produção ${novoId}: ${metrosFio.toStringAsFixed(2)}m de fio');
+          } catch (e) {
+            print('❌ Erro ao salvar produção $novoId: $e');
+          }
+        }
+      }
+    }
+
+    if (producoesCriadas > 0) {
+      print('✅ $producoesCriadas produção(ões) calculada(s) com sucesso!');
+
+      // Calcular total de fio produzido
+      double totalFio =
+          _producoes.map((p) => p.quantidade).reduce((a, b) => a + b);
+      print('📊 Total de fio produzido: ${totalFio.toStringAsFixed(2)} metros');
+    } else {
+      print('📭 Nenhuma produção calculada - sem variações no nível do tanque');
+    }
+  }
+
+  Future<void> _enviarProducoesParaMySQL() async {
+    print('\n📤 ENVIAR PRODUÇÕES PARA MYSQL');
+    print('═' * 50);
+
+    if (_producoes.isEmpty) {
+      print('❌ Nenhuma produção disponível para enviar');
+      return;
+    }
+
+    if (!_conectado) {
+      print('❌ Sem conexão com o banco MySQL');
+      return;
+    }
+
+    if (_sensores.isEmpty) {
+      print('❌ Nenhum sensor cadastrado no MySQL');
+      return;
+    }
+
+    // Usar o primeiro sensor disponível
+    final sensorId = _sensores.first.id;
+    int producoesEnviadas = 0;
+    int producoesComErro = 0;
+
+    print('📊 Total de produções locais: ${_producoes.length}');
+    print('📡 Usando sensor ID: $sensorId');
+    print('🚀 Enviando todas as produções...');
+
+    for (final producao in _producoes) {
+      try {
+        // Converter data para formato MySQL
+        String dataFormatada = _formatarDataParaMySQL(producao.dataHora);
+
+        // ✅ ENVIAR PRODUÇÃO PARA MYSQL
+        await dbConnection.connection!.query(
+          '''INSERT INTO producao 
+           (quantidade, timestamp, sensor_idSensor) 
+           VALUES (?, ?, ?)''',
+          [
+            producao.quantidade,
+            dataFormatada,
+            sensorId,
+          ],
+        );
+
+        producoesEnviadas++;
+        print(
+            '✅ ${dataFormatada} - ${producao.quantidade.toStringAsFixed(2)}m de fio');
+      } catch (e) {
+        producoesComErro++;
+        print('❌ ${producao.dataHora}: $e');
+      }
+    }
+
+    print('\n📊 RESUMO DO ENVIO:');
+    print('✅ Produções enviadas com sucesso: $producoesEnviadas');
+    print('❌ Produções com erro: $producoesComErro');
+    print('📋 Total processado: ${_producoes.length}');
+
+    if (producoesEnviadas > 0) {
+      print('🎉 Produções enviadas para MySQL!');
+    }
   }
 
   // ========== MÉTODO PRINCIPAL ==========
@@ -930,15 +1185,16 @@ class Menu {
       print('12  - 🛢️  Listar Tanques');
       print('13  - 👤 Listar Usuários');
       print('═' * 60);
-      print('📈 FIREBASE & PRODUÇÃO:');
-      print('14  - 🔄 Visualizar Última Leitura');
-      print('15  - 📈 Visualizar Últimas 10 Leituras');
-      print('16  - 📊 Listar Todas as Leituras');
-      print('17  - 🏭 Calcular Produção');
-      print('18  - 📋 Listar Produções');
       print('═' * 60);
-      print(' 0  - ❌ Sair');
-      print('─' * 60);
+      print('📈 FIREBASE & PRODUÇÃO:');
+      print('14 - 🔄 Visualizar Última Leitura');
+      print('15 - 📈 Visualizar Últimas 10 Leituras');
+      print('16 - 📊 Listar Todas as Leituras');
+      print('17 - 📤 Enviar Leituras para MySQL');
+      print('18 - 🏭 Calcular Produção');
+      print('19 - 📋 Listar Todas as Produções');
+      print('20 - 🚀 Enviar Produções para MySQL');
+      print('═' * 60);
 
       stdout.write('👉 Escolha: ');
       final opcao = stdin.readLineSync();
@@ -992,11 +1248,17 @@ class Menu {
         case '16':
           _listarLeituras();
           break;
-        case '17':
+        case '17': // ← ENVIAR LEITURAS PARA MYSQL
+          await _enviarLeiturasParaMySQL();
+          break;
+        case '18': // ← CALCULAR PRODUÇÃO
           await _calcularProducao();
           break;
-        case '18':
+        case '19': // ← LISTAR TODAS AS PRODUÇÕES
           _listarProducoes();
+          break;
+        case '20': // ← ENVIAR PRODUÇÕES PARA MYSQL
+          await _enviarProducoesParaMySQL();
           break;
         case '0':
           await dbConnection.close();
