@@ -137,112 +137,23 @@ class Menu {
 */
 
   // ========== CARREGAR DADOS DO BANCO - CORRIGIDO ==========
+  // ========== MÉTODO CORRIGIDO PARA CARREGAR DADOS ==========
   Future<void> _carregarDadosDoBanco() async {
     if (!_conectado) return;
 
     try {
       print('\n📥 CARREGANDO DADOS DO BANCO...');
 
-      // Carregar empresas
-      try {
-        var resultados =
-            await dbConnection.connection!.query('SELECT * FROM empresa');
-        if (resultados.isNotEmpty) {
-          for (var row in resultados) {
-            int id = row['idEmpresa'] ?? row[0] as int;
-            String nome = row['nome'] ?? row[1] as String;
-            String cnpj = row['cnpj'] ?? row[2] as String;
-            _empresas.add(Empresa(id, nome, cnpj));
-          }
-          print('🏢 Empresas carregadas: ${_empresas.length}');
-        } else {
-          print('ℹ️  Nenhuma empresa encontrada no banco');
-        }
-      } catch (e) {
-        print('ℹ️  Nenhuma empresa encontrada no banco: $e');
-      }
+      // Limpar todas as listas
+      _empresas.clear();
+      _locais.clear();
+      _dispositivos.clear();
+      _sensores.clear();
+      _tanques.clear();
+      _usuarios.clear();
 
-      // Carregar locais
-      try {
-        var resultados =
-            await dbConnection.connection!.query('SELECT * FROM local');
-        if (resultados.isNotEmpty) {
-          for (var row in resultados) {
-            int id = row['idLocal'] ?? row[0] as int;
-            String nome = row['nome'] ?? row[1] as String;
-            String referencia = row['referencia'] ?? row[2] as String;
-            _locais.add(Local(id, nome, referencia));
-          }
-          print('🏠 Locais carregados: ${_locais.length}');
-        } else {
-          print('ℹ️  Nenhum local encontrado no banco');
-        }
-      } catch (e) {
-        print('ℹ️  Nenhum local encontrado no banco: $e');
-      }
-
-      // Carregar dispositivos
-      try {
-        var resultados =
-            await dbConnection.connection!.query('SELECT * FROM dispositivo');
-        for (var row in resultados) {
-          _dispositivos.add(Dispositivo(row['idDispositivo'] ?? row[0],
-              row['modelo'] ?? row[1], row['status'] ?? row[2]));
-        }
-        print('⚙️  Dispositivos carregados: ${_dispositivos.length}');
-      } catch (e) {
-        print('ℹ️  Nenhum dispositivo encontrado no banco: $e');
-      }
-
-      // Carregar sensores
-      try {
-        var resultados =
-            await dbConnection.connection!.query('SELECT * FROM sensor');
-        for (var row in resultados) {
-          _sensores.add(SensorUltrassonico(row['idSensor'] ?? row[0],
-              row['tipo'] ?? row[1], row['unidadeMedida'] ?? row[2]));
-        }
-        print('📡 Sensores carregados: ${_sensores.length}');
-      } catch (e) {
-        print('ℹ️  Nenhum sensor encontrado no banco: $e');
-      }
-
-      // Carregar tanques
-      try {
-        var resultados =
-            await dbConnection.connection!.query('SELECT * FROM tanque');
-        for (var row in resultados) {
-          _tanques.add(Tanque(
-              row['idTanque'] ?? row[0],
-              (row['altura'] ?? row[1]).toDouble(),
-              (row['volumeMax'] ?? row[2]).toDouble(),
-              (row['volumeAtual'] ?? row[3]).toDouble()));
-        }
-        print('🛢️  Tanques carregados: ${_tanques.length}');
-      } catch (e) {
-        print('ℹ️  Nenhum tanque encontrado no banco: $e');
-      }
-
-      // Carregar usuários
-      try {
-        var resultados =
-            await dbConnection.connection!.query('SELECT * FROM usuario');
-        for (var row in resultados) {
-          _usuarios.add(Usuario(
-            idUsuario: row['idUsuario'] ?? row[0],
-            nome: row['nome'] ?? row[1],
-            email: row['email'] ?? row[2],
-            senhaLogin: row['senhaLogin'] ?? row[3],
-            perfil: row['perfil'] ?? row[4],
-            dataCriacao: row['dataCriacao'] ?? DateTime.now(),
-            ultimoLogin: row['ultimoLogin'] ?? DateTime.now(),
-            empresaId: row['empresa_idEmpresa'] ?? row[7] ?? 1,
-          ));
-        }
-        print('👤 Usuários carregados: ${_usuarios.length}');
-      } catch (e) {
-        print('ℹ️  Nenhum usuário encontrado no banco: $e');
-      }
+      // 🔥 MÉTODO FODA - CARREGA BASEADO NA ESTRUTURA REAL DA TABELA
+      await _carregarDadosInteligente();
 
       print('\n✅ RESUMO DO CARREGAMENTO:');
       print('🏢 Empresas: ${_empresas.length}');
@@ -254,6 +165,158 @@ class Menu {
     } catch (e) {
       print('❌ Erro ao carregar dados do banco: $e');
     }
+  }
+
+// ========== MÉTODO INTELIGENTE QUE DETECTA A ESTRUTURA REAL ==========
+  Future<void> _carregarDadosInteligente() async {
+    try {
+      // 1. Primeiro verifica a estrutura real de cada tabela
+      var estruturas = await _verificarEstruturasTabelas();
+
+      // 2. Carrega os dados baseado na estrutura real
+      for (var tabela in estruturas.entries) {
+        var nomeTabela = tabela.key;
+        var colunas = tabela.value;
+
+        print('\n🔍 Carregando $nomeTabela - Colunas: $colunas');
+
+        var resultados =
+            await dbConnection.connection!.query('SELECT * FROM $nomeTabela');
+
+        for (var row in resultados) {
+          var dados = row.toList();
+          await _processarLinhaInteligente(nomeTabela, colunas, dados);
+        }
+      }
+    } catch (e) {
+      print('❌ Erro no carregamento inteligente: $e');
+    }
+  }
+
+// ========== VERIFICA A ESTRUTURA REAL DAS TABELAS ==========
+  Future<Map<String, List<String>>> _verificarEstruturasTabelas() async {
+    var estruturas = <String, List<String>>{};
+    var tabelas = [
+      'empresa',
+      'local',
+      'dispositivo',
+      'sensor',
+      'tanque',
+      'usuario'
+    ];
+
+    for (var tabela in tabelas) {
+      try {
+        var resultado =
+            await dbConnection.connection!.query('DESCRIBE $tabela');
+        var colunas = <String>[];
+        for (var coluna in resultado) {
+          colunas.add(coluna[0].toString());
+        }
+        estruturas[tabela] = colunas;
+        print('📋 Estrutura real de $tabela: $colunas');
+      } catch (e) {
+        print('⚠️  Tabela $tabela não existe ou erro: $e');
+      }
+    }
+
+    return estruturas;
+  }
+
+// ========== PROCESSADOR INTELIGENTE DE LINHAS ==========
+  Future<void> _processarLinhaInteligente(
+      String tabela, List<String> colunas, List<dynamic> dados) async {
+    try {
+      switch (tabela) {
+        case 'empresa':
+          // EMPRESA: idEmpresa, nome, cnpj
+          if (colunas.length >= 3) {
+            _empresas.add(Empresa(_safeInt(dados[0]), _safeString(dados[1]),
+                _safeString(dados[2])));
+            print('✅ Empresa carregada: ${dados[1]}');
+          }
+          break;
+
+        case 'local':
+          // LOCAL: idLocal, nome, referencia, empresa_idEmpresa
+          if (colunas.length >= 3) {
+            _locais.add(Local(_safeInt(dados[0]), _safeString(dados[1]),
+                _safeString(dados[2])));
+            print('✅ Local carregado: ${dados[1]}');
+          }
+          break;
+
+        case 'dispositivo':
+          // DISPOSITIVO: idDispositivo, modelo, status
+          if (colunas.length >= 3) {
+            _dispositivos.add(Dispositivo(_safeInt(dados[0]),
+                _safeString(dados[1]), _safeString(dados[2])));
+            print('✅ Dispositivo carregado: ${dados[1]}');
+          }
+          break;
+
+        case 'sensor':
+          // SENSOR: idSensor, tipo, unidadeMedida
+          if (colunas.length >= 3) {
+            _sensores.add(SensorUltrassonico(_safeInt(dados[0]),
+                _safeString(dados[1]), _safeString(dados[2])));
+            print('✅ Sensor carregado: ${dados[1]}');
+          }
+          break;
+
+        case 'tanque':
+          // TANQUE: idTanque, altura, volumeMax, volumeAtual
+          if (colunas.length >= 4) {
+            _tanques.add(Tanque(_safeInt(dados[0]), _safeDouble(dados[1]),
+                _safeDouble(dados[2]), _safeDouble(dados[3])));
+            print('✅ Tanque carregado: ID ${dados[0]}');
+          }
+          break;
+
+        case 'usuario':
+          // USUARIO: idUsuario, nome, email, senhaLogin, perfil, dataCriacao, ultimoLogin, empresa_idEmpresa
+          if (colunas.length >= 3) {
+            _usuarios.add(Usuario(
+              idUsuario: _safeInt(dados[0]),
+              nome: _safeString(dados[1]),
+              email: colunas.length > 2 ? _safeString(dados[2]) : '',
+              senhaLogin: colunas.length > 3 ? _safeString(dados[3]) : '',
+              perfil: colunas.length > 4 ? _safeString(dados[4]) : 'Usuario',
+              dataCriacao: DateTime.now(),
+              ultimoLogin: DateTime.now(),
+              empresaId: colunas.length > 7 ? _safeInt(dados[7]) : 1,
+            ));
+            print('✅ Usuário carregado: ${dados[1]}');
+          }
+          break;
+      }
+    } catch (e) {
+      print('❌ Erro ao processar linha da tabela $tabela: $e');
+      print('   Dados: $dados');
+    }
+  }
+
+// ========== MÉTODOS AUXILIARES SEGUROS ==========
+  int _safeInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    if (value is double) return value.toInt();
+    return 0;
+  }
+
+  double _safeDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
+  String _safeString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    return value.toString();
   }
 
   // ========== MÉTODOS DE CADASTRO ==========
